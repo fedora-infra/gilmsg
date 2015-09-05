@@ -1,9 +1,9 @@
 gilmsg
 ======
 
-.. split here::
-
 A reliability layer on top of fedmsg.
+
+.. split here
 
 What is "Reliability"?
 ----------------------
