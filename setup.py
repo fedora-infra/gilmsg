@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with gilmsg; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 0.1.1.15.0 USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 0.1.2.15.0 USA
 #
 # Authors:  Ralph Bean <rbean@redhat.com>
 #
@@ -40,7 +40,7 @@ install_requires = [
 
 setup(
     name='gilmsg',
-    version='0.1.1',
+    version='0.1.2',
     description="A reliability layer on top of fedmsg",
     long_description=long_description,
     author='Ralph Bean',

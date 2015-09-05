@@ -3,6 +3,9 @@
 See the README for documentation.
 https://github.com/fedora-infra/gilmsg/
 
+Author:  Ralph Bean <rbean@redhat.com>
+License: LGPLv2+
+
 """
 
 
