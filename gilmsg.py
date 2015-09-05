@@ -7,14 +7,18 @@ https://github.com/fedora-infra/gilmsg/
 
 
 import threading
-
-
-import fedmsg
-import fedmsg.consumers
-import fedmsg.crypto
+import time
 
 import logging
 log = logging.getLogger("fedmsg")
+logging.basicConfig()
+
+import fedmsg
+import fedmsg.commands.logger
+import fedmsg.commands.tail
+import fedmsg.consumers
+import fedmsg.crypto
+
 
 import pkg_resources
 gilmsg_version = pkg_resources.get_distribution('gilmsg').version
@@ -66,7 +70,15 @@ class AckListener(threading.Thread):
         ])
 
         # Go into a loop, receiving gilmsg ACK messages from the fedmsg bus
-        for n, e, t, msg in fedmsg.tail_messages(topic=ack_topic):
+        for n, e, t, msg in fedmsg.tail_messages(**self.c):
+
+            # Did we run out of time?
+            if self.time_is_up:
+                return
+
+            # Throw away anything that's not an ACK produced by a consumer.
+            if t != ack_topic:
+                continue
 
             # We should only know about ACKs.  Is this an ACK for *ours*?
             if not msg['msg']['ack_msg_id'] == self.msg_id:
@@ -86,9 +98,6 @@ class AckListener(threading.Thread):
             if set(self.results) == set(self.expectations):
                 return
 
-            # Did we run out of time?
-            if self.time_is_up:
-                return
 
 
 def publish(topic=None, msg=None, modname=None,
@@ -108,6 +117,8 @@ def publish(topic=None, msg=None, modname=None,
         msg['gilmsg_version'] = gilmsg_version
         listener.set_msg_id(msg['msg_id'])
         listener.start()
+        # Give the listener a good head start...
+        time.sleep(kw['post_init_sleep'] * 2)
 
     fedmsg.publish(
         topic=topic,
@@ -121,27 +132,69 @@ def publish(topic=None, msg=None, modname=None,
     if listener.isAlive():
         listener.die()
         # Then the timeout expired and we haven't received our ACKs yet.
-        raise Timeout("Received only %i acks from %i systems in %d seconds" % (
-            len(listener.results), len(set(listener.results)), ack_timeout))
+        raise Timeout("Received %i acks from %i of %i systems in %d seconds" % (
+            len(listener.results),
+            len(set(listener.results)),
+            len(set(recipients)),
+            ack_timeout,
+        ))
     else:
         # Hopefully everything went well?
-        assert len(set(listener.results)) == len(set(recipients))
+        assert len(set(listener.results)) == len(set(recipients)), listener.results
 
 
 def _acknowledge(message, **config):
+    if 'gilmsg_version' not in message:
+        return
     ack = dict(ack_msg_id=message['msg_id'])
     fedmsg.publish(topic="ack", msg=ack, **config)
 
 
-def tail_messages(self, topic="", passive=False, **kw):
+def tail_messages(topic="", passive=False, **kw):
     for n, e, t, m in fedmsg.tail_messages(topic=topic, passive=passive, **kw):
         # Only acknowledge gilmsg messages to avoid catastrophic spam storm
-        if 'gilmsg_version' in m['msg']:
-            _acknowledge(m, **kw)
+        _acknowledge(m, **kw)
         yield n, e, t, m
 
 
 class GilmsgConsumer(fedmsg.consumers.FedmsgConsumer):
+    """ Extend this to make your own robust consumers. """
     def pre_consume(self, m):
         super(GilmsgConsumer, self).pre_consume(m)
         _acknowledge(m, **self.hub.config)
+
+
+class LoggerCommand(fedmsg.commands.logger.LoggerCommand):
+    extra_args = fedmsg.commands.logger.LoggerCommand.extra_args + [
+        (['--recipients'], {
+            'dest': 'recipients',
+            'metavar': 'SIGNER',
+            'nargs': '+',
+            'help': 'Names on the certificates of some required recipients',
+        }),
+        (['--ack-timeout'], {
+            'dest': 'ack_timeout',
+            'metavar': 'SECONDS',
+            'default': 0.25,
+            'type': float,
+            'help': 'Number of seconds to wait for acknowledgement.',
+        }),
+    ]
+
+    def _log_message(self, kw, message):
+        if not self.config['recipients']:
+            raise ValueError("'--recipients' is required.")
+
+        if kw['json_input']:
+            msg = fedmsg.encoding.loads(message)
+        else:
+            msg = {'log': message}
+
+        # Use our publish function, not fedmsg's
+        publish(
+            msg=msg,
+            **self.config)
+
+
+def logger_cli():
+    return LoggerCommand().execute()
