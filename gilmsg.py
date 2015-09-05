@@ -15,7 +15,6 @@ logging.basicConfig()
 
 import fedmsg
 import fedmsg.commands.logger
-import fedmsg.commands.tail
 import fedmsg.consumers
 import fedmsg.crypto
 
@@ -97,7 +96,6 @@ class AckListener(threading.Thread):
             # tail_messages to wait for more ACKs.  The clock is ticking....
             if set(self.results) == set(self.expectations):
                 return
-
 
 
 def publish(topic=None, msg=None, modname=None,

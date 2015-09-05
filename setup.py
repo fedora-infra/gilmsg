@@ -54,10 +54,6 @@ setup(
     entry_points={
         'console_scripts': [
             "gilmsg-logger=gilmsg:logger_cli",
-            "gilmsg-tail=gilmsg:tail_cli",
-        ],
-        'fedmsg.meta': [
-            "ack=gilmsg.AckMetadataProcessor",
         ],
     },
 )
