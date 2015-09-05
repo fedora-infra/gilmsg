@@ -1,0 +1,17 @@
+build
+dist
+*.egg*
+*.pyc
+*.pyo
+*.swp
+*.pdf
+_build
+html-output
+htmldoc
+_tweet-real.py
+htmldocs
+.coverage
+fedmsg/tests/test_certs/gpg/random_seed
+html-docs
+status
+.tox
