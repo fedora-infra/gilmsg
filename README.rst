@@ -147,6 +147,14 @@ In contrast, with gilmsg-enabled services:
 
 gilmsg-enabled services are *tightly coupled*.
 
+----
+
+A cosmetic note:
+
+- The more gilmsg-enabled producer/consumer pairs you bring on line, the more
+  spam you'll have on the bus.  It can handle the throughput(!) but it will
+  make the datagrepper logs less readable as you add more.
+
 Using gilmsg
 ------------
 
